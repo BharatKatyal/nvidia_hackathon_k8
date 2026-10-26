@@ -1,0 +1,12 @@
+.run/
+*.bak
+*.tar
+*.log
+*.pid
+*.key
+*.pem
+kubeconfig*
+node_modules/
+.DS_Store
+submission/
+recordings/*.mov

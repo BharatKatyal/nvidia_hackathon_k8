@@ -1,0 +1,41 @@
+# OpenShell sandbox policy for the `openclaw` sandbox (k3s version).
+# scripts/up.sh renders this file to .run/openclaw-policy.yaml, replacing __HOST_IP__
+# with the address pods see for the host (k3s flannel: the cni0 address, expected 10.42.0.1).
+# Pass the rendered file at create time: `openshell sandbox create --policy ...`.
+# A sandbox created without a policy never becomes ready.
+version: 1
+
+# Which paths the sandbox process can read / write (enforced with Landlock).
+filesystem_policy:
+  include_workdir: true
+  read_only: [/bin, /usr, /lib, /proc, /dev/urandom, /app, /etc, /var/log]
+  read_write: [/sandbox, /tmp, /dev/null]
+
+# best_effort: continue if the kernel supports only part of the requested Landlock rules.
+landlock:
+  compatibility: best_effort
+
+# Outbound network is deny-by-default. Each entry below is an allow rule.
+network_policies:
+  # Allow ONLY the node binary to reach Ollama on the host. curl to the same URL stays blocked
+  # because rules are per binary. Binary paths must be real paths (readlink -f); in the
+  # OpenClaw image node is /usr/bin/node.
+  ollama_host:
+    name: ollama-on-host
+    endpoints:
+      - host: __HOST_IP__
+        port: 11434
+        # The host IP is private (RFC 1918); the proxy blocks private IPs unless listed here.
+        allowed_ips: ["__HOST_IP__/32"]
+    binaries:
+      - { path: /usr/bin/node }
+
+  # OpenClaw's Telegram channel long-polls the Bot API. Public host, so no allowed_ips needed.
+  # Same per-binary rule as Ollama: only node, so curl in the sandbox still cannot reach it.
+  telegram:
+    name: telegram-bot-api
+    endpoints:
+      - host: api.telegram.org
+        port: 443
+    binaries:
+      - { path: /usr/bin/node }

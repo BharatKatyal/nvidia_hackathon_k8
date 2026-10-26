@@ -1,0 +1,35 @@
+# Not wired into ArgoCD (not under apps/). Needs a large image pull; the device has slow internet.
+apiVersion: v1
+kind: Namespace
+metadata: {name: llm}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: vllm, namespace: llm}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}  # one GPU: never run two pods at once
+  selector: {matchLabels: {app: vllm}}
+  template:
+    metadata: {labels: {app: vllm}}
+    spec:
+      runtimeClassName: nvidia
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:latest
+        # swap the model for /models/<hf-dir>/snapshots/<hash> to serve the local NVFP4/FP8 checkpoints
+        args: ["--model", "Qwen/Qwen2.5-0.5B-Instruct", "--served-model-name", "default",
+               "--gpu-memory-utilization", "0.2", "--max-model-len", "4096"]
+        env:
+        - {name: NVIDIA_VISIBLE_DEVICES, value: all}
+        - {name: NVIDIA_DRIVER_CAPABILITIES, value: all}
+        - {name: HF_HOME, value: /hf}
+        ports: [{containerPort: 8000}]
+        volumeMounts:
+        - {name: models, mountPath: /models, readOnly: true}
+        - {name: hf, mountPath: /hf}
+        - {name: shm, mountPath: /dev/shm}
+      volumes:
+      - {name: models, hostPath: {path: /home/dell/Desktop/Models}}
+      - {name: hf, hostPath: {path: /home/dell/.cache/hf-k8s, type: DirectoryOrCreate}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 8Gi}}

@@ -1,0 +1,45 @@
+# OpenShell policy for the `store-manager` sandbox. Render: sed "s/__HOST_IP__/$HOST_IP/g".
+# Same schema as policies/openclaw-policy.yaml.tmpl. Least privilege: two network rules, node only.
+version: 1
+
+filesystem_policy:
+  include_workdir: true
+  # Same read-only base as the existing template: runtime, libs, config. Nothing else is readable.
+  read_only: [/bin, /usr, /lib, /proc, /dev/urandom, /app, /etc, /var/log]
+  # /sandbox holds OpenClaw config + workspace + the owned inventory/orders data; /tmp is scratch.
+  read_write: [/sandbox, /tmp, /dev/null]
+
+landlock:
+  compatibility: best_effort
+
+network_policies:
+  # Model access: only node (OpenClaw) may reach Ollama on the host. curl stays blocked.
+  ollama_host:
+    name: ollama-on-host
+    endpoints:
+      - host: __HOST_IP__
+        port: 11434
+        # Host IP is private; proxy blocks private IPs unless listed.
+        allowed_ips: ["__HOST_IP__/32"]
+    binaries:
+      - { path: /usr/bin/node }
+
+  # Agent-to-agent channel. Sandboxes cannot reach each other, so both use a mailbox on the host.
+  # Store manager pops tasks and posts answers. It may NOT create tasks.
+  mailbox_host:
+    name: mailbox-on-host
+    endpoints:
+      - host: __HOST_IP__
+        port: 8090
+        allowed_ips: ["__HOST_IP__/32"]
+        # protocol/rules syntax taken from NemoClaw tests (https example). UNVERIFIED for plain http;
+        # if it rejects, remove protocol, enforcement and rules (loses method scoping).
+        protocol: rest
+        enforcement: enforce
+        rules:
+          # GET /tasks/next: take the next task from the orchestrator.
+          - allow: { method: GET, path: "/tasks/next" }
+          # POST /results/<id>: return the answer.
+          - allow: { method: POST, path: "/results/*" }
+    binaries:
+      - { path: /usr/bin/node }

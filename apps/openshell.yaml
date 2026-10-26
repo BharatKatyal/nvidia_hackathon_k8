@@ -1,0 +1,23 @@
+# OpenShell gateway, Helm chart 0.1.5. Wave 1: syncs after agent-sandbox (wave 0) is healthy.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openshell
+  namespace: argocd
+  annotations: {argocd.argoproj.io/sync-wave: "1"}
+spec:
+  project: default
+  source:
+    # = oci://ghcr.io/nvidia/openshell/helm-chart. Argo OCI form: repoURL without oci://, chart = last path part.
+    # Public package; if your Argo is old, register ghcr.io/nvidia/openshell as an OCI repo (enableOCI) first.
+    repoURL: ghcr.io/nvidia/openshell
+    chart: helm-chart
+    targetRevision: 0.1.5
+    helm:
+      parameters:
+        # LOCAL EVAL ONLY: anyone who can reach the gateway can use it without logging in.
+        - {name: server.auth.allowUnauthenticatedUsers, value: "true"}
+  destination: {server: https://kubernetes.default.svc, namespace: openshell}
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions: [CreateNamespace=true]

@@ -1,0 +1,20 @@
+# Agent Sandbox v1.0.2 (controller + CRDs). Manifest vendored from
+# https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.2/sandbox-with-extensions.yaml
+# because Argo cannot use a bare URL as a source. Wave 0: must be healthy before OpenShell (wave 1).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agent-sandbox
+  namespace: argocd
+  annotations: {argocd.argoproj.io/sync-wave: "0"}
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/BharatKatyal/nvidia_hackathon_k8.git
+    targetRevision: HEAD
+    path: agent-sandbox
+  destination: {server: https://kubernetes.default.svc, namespace: agent-sandbox-system}
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    # the CRDs are too large for client-side apply's last-applied annotation
+    syncOptions: [ServerSideApply=true]
