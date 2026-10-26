@@ -12,13 +12,16 @@ hub() { curl -sS -m 8 -H 'X-Agent: orchestrator' "$@"; }
 j() { node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{const v=JSON.parse(d)[process.argv[1]];console.log(v??"")}catch{console.log("")}})' "$1"; }
 tg() { openshell sandbox exec "$TG" -- openclaw message send --channel telegram -t "$CHAT" -m "$1" >/dev/null 2>&1 || echo "telegram send failed"; }
 
-# prints "approve"/"reject" if Maya's newest DM after epoch-ms $1 says so
+# prints "approve" only if the OWNER's newest DM after epoch-ms $1 is exactly "approve" or "yes" (case-insensitive, trimmed).
+# Owner = the gateway-written sender_id in the FIRST metadata block must equal $CHAT; anything else is ignored.
 reply_since() {
-  openshell sandbox exec "$TG" -- sh -c 'cat /sandbox/.openclaw/agents/main/sessions/*.jsonl' 2>/dev/null | SINCE=$1 node -e '
+  openshell sandbox exec "$TG" -- sh -c 'cat /sandbox/.openclaw/agents/main/sessions/*.jsonl' 2>/dev/null | SINCE=$1 CHAT=$CHAT node -e '
     let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{let r="";
       for(const l of d.split("\n")){try{const m=JSON.parse(l).message;if(!m||m.role!=="user"||m.timestamp<=+process.env.SINCE)continue;
-        const t=m.content.map(c=>c.text||"").join("").split("\n").pop().trim().toLowerCase();
-        const w=t.replace(/[^a-z ]/g,"").split(" ")[0]; if(w==="approve"||w==="reject")r=w}catch{}}
+        const full=m.content.map(c=>c.text||"").join("");
+        const sid=(full.match(/"sender_id":\s*"(\d+)"/)||[])[1]; if(sid!==process.env.CHAT){r="";continue}
+        const t=full.split("\n").pop().trim().toLowerCase();
+        r=(t==="approve"||t==="yes")?"approve":""}catch{}}
       console.log(r)})'
 }
 
