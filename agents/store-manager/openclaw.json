@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.11",
+    "lastTouchedAt": "2026-10-25T23:09:29.629Z"
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://10.42.0.1:11434/v1",
+        "apiKey": "REDACTED",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "nemotron-3-nano:4b",
+            "name": "nemotron-3-nano:4b",
+            "contextWindow": 32768,
+            "maxTokens": 4096
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ollama/nemotron-3-nano:4b"
+      },
+      "models": {
+        "ollama/nemotron-3-nano:4b": {}
+      }
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  }
+}

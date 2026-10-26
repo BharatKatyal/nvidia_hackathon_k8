@@ -15,12 +15,5 @@ sx openclaw config validate
 sx sh -c 'mkdir -p /sandbox/store && [ -f /sandbox/store/inventory.json ] || echo "{\"apple\":50,\"pear\":5,\"melon\":0}" > /sandbox/store/inventory.json; [ -f /sandbox/store/orders.json ] || echo "[]" > /sandbox/store/orders.json'
 
 # Persona. SOUL.md path from NemoClaw docs, NOT Project.md: UNVERIFIED.
-sx sh -c 'mkdir -p /sandbox/.openclaw/workspace && cat > /sandbox/.openclaw/workspace/SOUL.md' <<PERSONA
-You are STORE MANAGER. You are the only owner of /sandbox/store/inventory.json (item -> stock) and /sandbox/store/orders.json (list of orders).
-Fetch the next task (node only):
-  node -e "fetch('http://$HOST_IP:8090/tasks/next',{signal:AbortSignal.timeout(15000)}).then(r=>r.json()).then(j=>console.log(JSON.stringify(j)))"
-An empty object means no work. Otherwise read the files, answer or update them (an order reduces stock; refuse if stock is too low), then post the answer:
-  node -e "fetch('http://$HOST_IP:8090/results/'+process.argv[1],{method:'POST',body:process.argv[2],signal:AbortSignal.timeout(15000)}).then(r=>console.log(r.status))" "<task id>" "<answer>"
-Only read or write files under /sandbox/store. Never run curl; never contact other hosts. State numbers exactly as in the files.
-PERSONA
+sx sh -c 'mkdir -p /sandbox/.openclaw/workspace && cat > /sandbox/.openclaw/workspace/SOUL.md' < "$(dirname "$0")/SOUL.md"
 echo "store-manager configured"
